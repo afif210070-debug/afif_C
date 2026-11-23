@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>afif_C — VS Code</title>
+<style>
+  :root { --bg: #1e1e1e; --panel: #252526; --bar: #323233; --line: #333; --fg: #ccc; --dim: #858585; --accent: #007acc; --green: #2ea043; --teal: #4ec9b0; --blue: #9cdcfe; --mono: Consolas, monospace; }
+  * { box-sizing:border-box; margin:0 }
+  body { background:var(--bg); color:var(--fg); height:100vh; overflow:hidden; display:flex; flex-direction:column; font:12px 'Segoe UI',sans-serif }
+  .r { display:flex; align-items:center }
+  .col { display:flex; flex-direction:column }
+
+  /* Titlebar & Dropdown Menus */
+  .titlebar { background:var(--bar); height:32px; justify-content:space-between; padding:0 12px; border-bottom:1px solid var(--panel); user-select:none }
+  .menus { gap:4px; position:relative }
+  .m-item { position:relative; padding:4px 8px; border-radius:3px; cursor:pointer }
+  .m-item:hover { background:#454646; color:#fff }
+  .drop { display:none; position:absolute; top:26px; left:0; background:#252526; border:1px solid #454545; min-width:190px; z-index:99; box-shadow:0 4px 10px rgba(0,0,0,.5); padding:4px 0 }
+  .m-item:hover .drop { display:block }
+  .drop div { padding:6px 14px; color:#ccc; cursor:pointer }
+  .drop div:hover { background:#094771; color:#fff }
+
+  .run { background:var(--green); color:#fff; border:0; padding:4px 12px; border-radius:3px; cursor:pointer; font-weight:600; font-size:12px }
+  .run:hover { background:#3fb950 }
+  .statusbar { background:var(--accent); color:#fff; height:22px; justify-content:space-between; padding:0 12px }
+
+  .workspace { flex:1; overflow:hidden; align-items:stretch }
+  .activity { width:46px; background:#333; padding-top:10px; gap:18px; font-size:18px; color:var(--dim); border-right:1px solid var(--panel) }
+  .activity span { cursor:pointer; width:100%; text-align:center; padding:4px 0 }
+  .activity .on { color:#fff; border-left:2px solid #fff }
+  .sidebar { width:185px; background:var(--panel); padding:10px 0; border-right:1px solid var(--bg) }
+  .hdr { padding:0 14px 8px; font-size:11px; color:#bbb; letter-spacing:.8px }
+  .folder { padding:4px 14px; font-weight:700 }
+  .file { padding:5px 24px; background:#37373d; color:#fff; cursor:pointer; gap:6px }
+
+  .center { flex:1; border-right:1px solid var(--line); min-width:0 }
+  .tabs { background:var(--panel); height:34px }
+  .tab { background:var(--bg); height:100%; padding:0 16px; gap:8px; font-size:13px; border-top:1px solid var(--accent); color:#fff }
+  .editor { flex:1; overflow:hidden; background:var(--bg); align-items:stretch }
+  .gutter { width:46px; padding:14px 8px; text-align:right; color:var(--dim); font:14px/21px var(--mono); user-select:none; white-space:pre; overflow:hidden }
+  textarea { flex:1; background:var(--bg); color:#d4d4d4; border:0; outline:0; padding:14px 8px; font:14px/21px var(--mono); resize:none }
+
+  .terminal { height:155px; border-top:1px solid #414141 }
+  .tt { gap:18px; padding:6px 16px; font-size:11px; text-transform:uppercase; color:var(--dim); border-bottom:1px solid #2b2b2b }
+  .tt .on { color:#fff; border-bottom:1px solid var(--accent); padding-bottom:4px }
+  .tout { flex:1; padding:10px 16px; font:13px var(--mono); overflow-y:auto; white-space:pre-wrap }
+
+  .panel { width:410px; background:var(--panel); display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:8px; padding:10px }
+  .box { background:var(--bg); border:1px solid var(--line); padding:8px; font:12px var(--mono); color:var(--blue); overflow-y:auto; white-space:pre-wrap }
+  .box::before { content:attr(data-s); display:block; font:11px 'Segoe UI',sans-serif; color:var(--teal); margin-bottom:4px; letter-spacing:.5px; text-transform:uppercase }
+</style>
+</head>
+<body>
+
+<div class="titlebar r">
+  <div class="menus r">
+    <div class="m-item">File
+      <div class="drop">
+        <div onclick="newFile()">New C File</div>
+        <div onclick="document.getElementById('fIn').click()">Open .c File...</div>
+        <div onclick="saveFile()">Save main.c</div>
+      </div>
+    </div>
+    <div class="m-item">Edit
+      <div class="drop">
+        <div onclick="loadDemo('opt')">Demo: Constant Folding</div>
+        <div onclick="loadDemo('err')">Demo: Semantic Error</div>
+        <div onclick="c.value='';sync()">Clear Editor</div>
+      </div>
+    </div>
+    <div class="m-item">Selection
+      <div class="drop">
+        <div onclick="c.select()">Select All (Ctrl+A)</div>
+      </div>
+    </div>
+    <div class="m-item">Run
+      <div class="drop">
+        <div onclick="run()">Compile &amp; Execute VM</div>
+        <div onclick="o.textContent='PS E:\\My_C_Compiler> '">Clear Terminal</div>
+      </div>
+    </div>
+  </div>
+  <span style="color:#999" id="fname">main.c — afif_C (Visual Studio Code)</span>
+  <button class="run" onclick="run()">▶ Compile &amp; Execute VM</button>
+</div>
+<input type="file" id="fIn" accept=".c,.txt" style="display:none" onchange="openFile(this)">
+
+<div class="workspace r">
+  <div class="activity col">
+    <span class="on" title="Toggle Explorer" onclick="toggleSide()">📄</span>
+    <span title="Run Compiler" onclick="run()">▶</span>
+    <span title="Save File" onclick="saveFile()">💾</span>
+  </div>
+  <div class="sidebar" id="side">
+    <div class="hdr">EXPLORER</div>
+    <div class="folder">▾ afif_C</div>
+    <div class="file r" id="sideFile">🇨 main.c</div>
+  </div>
+  <div class="center col">
+    <div class="tabs r"><div class="tab r" id="tabName">🇨 main.c <span onclick="newFile()" style="cursor:pointer">×</span></div></div>
+    <div class="editor r">
+      <pre class="gutter" id="g">1</pre>
+      <textarea id="c" spellcheck="false">int main() {
+    // Constant folding demo
+    int a = 10 + 20 * 2;
+    int b = a - 15;
+    printf(b);
+    return 0;
+}</textarea>
+    </div>
+    <div class="terminal col">
+      <div class="tt r"><span class="on">Terminal</span><span>Output</span><span>Problems</span></div>
+      <div class="tout" id="o">PS E:\My_C_Compiler&gt; Ready (9-Stage Pipeline)...</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="box" id="s2" data-s="2. Lexer (Tokens)">...</div>
+    <div class="box" id="s5" data-s="5. IR Generation">...</div>
+    <div class="box" id="s6" data-s="6. Optimization (Folded)">...</div>
+    <div class="box" id="s7" data-s="7. Bytecode (VM Inst)">...</div>
+  </div>
+</div>
+
+<div class="statusbar r">
+  <span>⊗ 0 &nbsp; ⚠ 0</span>
+  <span>Lexer → Parser → Semantic → IR → Optimizer → Bytecode → Stack VM</span>
+</div>
+
+<script>
+  const c = document.getElementById('c'), g = document.getElementById('g'), o = document.getElementById('o');
+  const sync = () => {
+    g.textContent = Array.from({length: c.value.split('\n').length}, (_, i) => i + 1).join('\n');
+    g.scrollTop = c.scrollTop;
+  };
+  c.oninput = sync; c.onscroll = sync; sync();
+
+  function toggleSide() {
+    const s = document.getElementById('side');
+    s.style.display = (s.style.display === 'none') ? 'block' : 'none';
+  }
+  function newFile() {
+    c.value = 'int main() {\n    int x = 10;\n    printf(x);\n    return 0;\n}';
+    sync();
+  }
+  function saveFile() {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([c.value], {type: 'text/plain'}));
+    a.download = 'main.c'; a.click();
+  }
+  function openFile(inp) {
+    const f = inp.files.at(0); if (!f) return;
+    document.getElementById('sideFile').textContent = '🇨 ' + f.name;
+    document.getElementById('tabName').textContent = '🇨 ' + f.name;
+    f.text().then(t => { c.value = t; sync(); });
+  }
+  function loadDemo(type) {
+    c.value = type === 'opt'
+      ? 'int main() {\n    // Constant folding demo\n    int a = 10 + 20 * 2;\n    int b = a - 15;\n    printf(b);\n    return 0;\n}'
+      : 'int main() {\n    // Semantic Error Demo (Undeclared variable)\n    int a = 10;\n    printf(b);\n    return 0;\n}';
+    sync(); run();
+  }
+
+  async function run() {
+    o.textContent = 'PS E:\\My_C_Compiler> Running 9-Stage Pipeline...\n';
+    try {
+      const res = await fetch('/run', { method:'POST', body: c.value });
+      const p = (await res.text()).split('|||');
+      if (p.at(0) === 'OK') {
+        o.innerHTML += `<span style="color:#89d185">[8 & 9. VM Output]:\n${p.at(1)}</span>`;
+        document.getElementById('s2').textContent = p.at(2);
+        document.getElementById('s5').textContent = p.at(3);
+        document.getElementById('s6').textContent = p.at(4);
+        document.getElementById('s7').textContent = p.at(5);
+      } else {
+        o.innerHTML += `<span style="color:#f48771">${p.at(1)}</span>`;
+      }
+    } catch (e) {
+      o.innerHTML += `<span style="color:#f48771">Error: ${e.message}</span>`;
+    }
+  }
+</script>
+</body>
+</html>
